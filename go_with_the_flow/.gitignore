@@ -25,3 +25,56 @@ code_release/.nfs000000000322527c00009703
 #<RP Default Gitignore End>
 
 *.blend*
+# Python bytecode / extensions
+__pycache__/
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build / packaging
+build/
+dist/
+site/
+.eggs/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+wheelhouse/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.cache/
+
+# Type checking / lint
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Tooling
+.tox/
+.nox/
+.dmypy.json
+dmypy.json
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Environment / local config
+.env
+.env.*
+*.local
+
+# Logs
+*.log
