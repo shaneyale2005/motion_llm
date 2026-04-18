@@ -16,6 +16,22 @@ rp.git_import('CommonSource') #If missing, installs code from https://github.com
 import rp.git.CommonSource.noise_warp as nw
 import fire
 
+
+def install_video_save_compat(fallback_bitrate=8_000_000, default_backend="imageio"):
+    if getattr(rp, "_gwf_video_save_compat_installed", False):
+        return
+
+    original_save_video_mp4 = rp.save_video_mp4
+
+    def safe_save_video_mp4(*args, **kwargs):
+        if kwargs.get("video_bitrate") == "max":
+            kwargs["video_bitrate"] = fallback_bitrate
+        kwargs.setdefault("backend", default_backend)
+        return original_save_video_mp4(*args, **kwargs)
+
+    rp.save_video_mp4 = safe_save_video_mp4
+    rp._gwf_video_save_compat_installed = True
+
 def main(video:str, output_folder:str):
     """
     Takes a video URL or filepath and an output folder path
@@ -24,6 +40,8 @@ def main(video:str, output_folder:str):
     It saves that warped noise, optical flows, and related preview videos and images to the output folder
     The main file you need is <output_folder>/noises.npy which is the gaussian noises in (H,W,C) form
     """
+
+    install_video_save_compat()
 
     if rp.folder_exists(output_folder):
         raise RuntimeError(f"The given output_folder={repr(output_folder)} already exists! To avoid clobbering what might be in there, please specify a folder that doesn't exist so I can create one for you. Alternatively, you could delete that folder if you don't care whats in it.")

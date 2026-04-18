@@ -13,6 +13,22 @@ from transformers import T5EncoderModel
 
 import rp.git.CommonSource.noise_warp as nw
 
+
+def install_video_save_compat(fallback_bitrate=8_000_000, default_backend="imageio"):
+    if getattr(rp, "_gwf_video_save_compat_installed", False):
+        return
+
+    original_save_video_mp4 = rp.save_video_mp4
+
+    def safe_save_video_mp4(*args, **kwargs):
+        if kwargs.get("video_bitrate") == "max":
+            kwargs["video_bitrate"] = fallback_bitrate
+        kwargs.setdefault("backend", default_backend)
+        return original_save_video_mp4(*args, **kwargs)
+
+    rp.save_video_mp4 = safe_save_video_mp4
+    rp._gwf_video_save_compat_installed = True
+
 pipe_ids = dict(
     T2V5B="THUDM/CogVideoX-5b",
     T2V2B="THUDM/CogVideoX-2b",
@@ -415,6 +431,8 @@ def main(
         prompt (str or list, optional): Broadcastable. Text prompt(s) for video generation.
         num_inference_steps (int or list): Broadcastable. Number of inference steps for the pipeline.
     """
+    install_video_save_compat()
+
     output_root='infer_outputs', # output_root (str): Root directory where output videos will be saved.
     subfolder='default_subfolder', # subfolder (str): Subfolder within output_root to save outputs.
 
@@ -484,6 +502,5 @@ def main(
 if __name__ == '__main__':
     import fire
     fire.Fire(main)
-
 
 
