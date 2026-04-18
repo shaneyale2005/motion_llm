@@ -78,3 +78,7 @@ dmypy.json
 
 # Logs
 *.log
+
+input_videos/
+noise_demo/
+lora_models/
