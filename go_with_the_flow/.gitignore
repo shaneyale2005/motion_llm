@@ -82,3 +82,4 @@ dmypy.json
 input_videos/
 noise_demo/
 lora_models/
+output/
