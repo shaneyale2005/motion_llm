@@ -9,6 +9,7 @@ import numpy as np
 import rp
 
 from motion_aware_modulation import apply_motion_scale_to_flow, compute_motion_scaling
+from video_save_compat import install_video_save_compat
 
 
 def import_raft_module():
@@ -217,6 +218,7 @@ def process_video(video_source, device, raft_model, args):
 
 
 def main():
+    install_video_save_compat()
     args = parse_arguments()
 
     # macOS 默认使用 CPU，其他平台自动选 torch 设备
@@ -247,4 +249,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

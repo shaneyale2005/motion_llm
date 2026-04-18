@@ -1,4 +1,5 @@
 import rp
+from video_save_compat import install_video_save_compat
 # from rp import *
 import torch
 import numpy as np
@@ -12,22 +13,6 @@ from diffusers import AutoencoderKLCogVideoX, CogVideoXImageToVideoPipeline, Cog
 from transformers import T5EncoderModel
 
 import rp.git.CommonSource.noise_warp as nw
-
-
-def install_video_save_compat(fallback_bitrate=8_000_000, default_backend="imageio"):
-    if getattr(rp, "_gwf_video_save_compat_installed", False):
-        return
-
-    original_save_video_mp4 = rp.save_video_mp4
-
-    def safe_save_video_mp4(*args, **kwargs):
-        if kwargs.get("video_bitrate") == "max":
-            kwargs["video_bitrate"] = fallback_bitrate
-        kwargs.setdefault("backend", default_backend)
-        return original_save_video_mp4(*args, **kwargs)
-
-    rp.save_video_mp4 = safe_save_video_mp4
-    rp._gwf_video_save_compat_installed = True
 
 pipe_ids = dict(
     T2V5B="THUDM/CogVideoX-5b",
@@ -502,5 +487,4 @@ def main(
 if __name__ == '__main__':
     import fire
     fire.Fire(main)
-
 

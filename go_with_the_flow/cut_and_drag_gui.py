@@ -1,4 +1,5 @@
 from rp import *
+from video_save_compat import install_video_save_compat
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Slider
@@ -7,6 +8,8 @@ import cv2
 git_import('CommonSource')
 import rp.git.CommonSource.noise_warp as nw
 from easydict import EasyDict
+
+install_video_save_compat()
 
 
 def select_polygon(image):
