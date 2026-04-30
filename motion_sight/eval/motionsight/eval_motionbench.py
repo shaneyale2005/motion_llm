@@ -12,6 +12,11 @@ from tqdm import tqdm
 import sys
 from io import StringIO
 from utils.blur_utils import apply_motion_trails, apply_background_blur
+from utils.motion_spotlight import (
+    build_motion_fallback_clusters,
+    compute_frame_motion_boxes,
+    merge_box_with_motion,
+)
 from multiprocessing import shared_memory
 from datetime import datetime
 from decord import VideoReader, cpu
@@ -28,6 +33,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--p', type=int, default=1)
 parser.add_argument('--name', type=str)
 parser.add_argument('--resume', type=int, default=0)
+parser.add_argument('--motion_expand', action='store_true')
+parser.add_argument('--motion_fallback', action='store_true')
+parser.add_argument('--motion_percentile', type=float, default=90.0)
+parser.add_argument('--motion_min_area_ratio', type=float, default=0.002)
+parser.add_argument('--motion_near_ratio', type=float, default=0.12)
 args = parser.parse_args()
 parallel = args.p
 global_name = args.name
@@ -434,6 +444,15 @@ Watch the video, then provide the JSON response as described above.'''
         dense_len_frames = len_frames
     # Calculate union bounding box for action objects
     action_dir = None
+    motion_boxes_by_frame = None
+    if has_om and (args.motion_expand or args.motion_fallback):
+        motion_boxes_by_frame = compute_frame_motion_boxes(
+            dense_frames_path,
+            dense_len_frames,
+            percentile=args.motion_percentile,
+            min_area_ratio=args.motion_min_area_ratio,
+        )
+
     if result is not None:
         action_dir = f"{frames_path}_action"
         os.makedirs(action_dir, exist_ok=True)
@@ -456,6 +475,14 @@ Watch the video, then provide the JSON response as described above.'''
 
             if current_cluster is not None:
                 union_box = current_cluster['union_box']
+                if args.motion_expand and motion_boxes_by_frame is not None:
+                    union_box = merge_box_with_motion(
+                        union_box,
+                        motion_boxes_by_frame.get(frame_idx, []),
+                        frame_width,
+                        frame_height,
+                        near_ratio=args.motion_near_ratio,
+                    )
                 # Add padding
                 padding = 20  # pixels
                 min_x1 = max(0, union_box[0] - padding)
@@ -467,7 +494,28 @@ Watch the video, then provide the JSON response as described above.'''
             else:
                 assert False
     else:
-        action_dir = frames_path
+        if has_om and args.motion_fallback and motion_boxes_by_frame is not None:
+            action_dir = f"{frames_path}_motion"
+            os.makedirs(action_dir, exist_ok=True)
+            clusters = build_motion_fallback_clusters(
+                motion_boxes_by_frame,
+                dense_len_frames,
+                frame_width,
+                frame_height,
+            )
+            for frame_idx in range(dense_len_frames):
+                frame_path = f"{dense_frames_path}/{frame_idx:04d}.jpg"
+                if not os.path.exists(frame_path):
+                    continue
+                union_box = clusters[frame_idx]['union_box']
+                padding = 20
+                min_x1 = max(0, union_box[0] - padding)
+                min_y1 = max(0, union_box[1] - padding)
+                max_x2 = min(frame_width, union_box[2] + padding)
+                max_y2 = min(frame_height, union_box[3] + padding)
+                spotlight_func((frame_idx, [min_x1, min_y1, max_x2, max_y2], frame_path, action_dir))
+        else:
+            action_dir = frames_path
 
     step4_crop_time = time.time() - step4_crop_start
     timing_info['step4_crop'] = step4_crop_time
